@@ -32,7 +32,9 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json()
 }
 
-// 仅用于本步：固定 page=0 size=10
-export function getUsersFirstPage() {
-  return request<PageResp<User>>(`${BASE}/users?page=0&size=10`)
+// 支持分页和搜索
+export function getUsers(page = 0, size = 10, q?: string) {
+  const p = new URLSearchParams({ page: String(page), size: String(size) })
+  if (q) p.set("q", q)
+  return request<PageResp<User>>(`${BASE}/users?${p.toString()}`)
 }
