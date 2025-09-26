@@ -38,3 +38,10 @@ export function getUsers(page = 0, size = 10, q?: string) {
   if (q) p.set("q", q)
   return request<PageResp<User>>(`${BASE}/users?${p.toString()}`)
 }
+
+export function createUser(body: { username: string; email: string; password: string }) {
+  return request<User>(`${BASE}/users`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { getUsers, type User } from './api'
+import { getUsers, createUser, type User } from './api'
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [list, setList] = useState<User[]>([])
   const [q, setQ] = useState<string>("")
+  const [refresh, setRefresh] = useState<number>(0)   // 用于新增、修改、删除后自动刷新页面
 
   // 分页相关状态
   const [page, setPage] = useState<number>(0)     // 后端页码从 0 开始
@@ -14,6 +15,15 @@ export default function UsersPage() {
 
   // 计算总页数
   const totalPages = Math.max(1, Math.ceil(total / size))
+
+  // 控制弹层表单
+  const [showForm, setShowForm] = useState<boolean>(false)
+  // 表单字段
+  const [form, setForm] = useState<{ username: string; email: string; password: string }>({
+    username: "",
+    email: "",
+    password: ""
+  })
 
   useEffect(() => {
     const run = async () => {
@@ -30,10 +40,10 @@ export default function UsersPage() {
       }
     }
     run()
-  }, [page, size, q])   // 当 页码、每页条数、搜索关键字 改变时都会重新执行
+  }, [page, size, q, refresh])   // 当 页码、每页条数、搜索关键字、refresh值 改变时都会重新执行
 
   
-  return (
+  return (// 这里和flutter太像了，语法也类似，只是关键字等不同而已，思想和原理是一样的，就是返回一个界面。
     <div style={{ maxWidth: 800, margin: '20px auto', padding: 16 }}>
       <h2>用户管理（最小版）</h2>
 
@@ -48,6 +58,10 @@ export default function UsersPage() {
         <button onClick={() => { /* 手动触发搜索时什么也不用做，因为 q 已经绑定了 */ }}>
           Search
         </button>
+        <button onClick={() => { setForm({ username: "", email: "", password: "" }); setShowForm(true) }}>
+          新增用户
+        </button>
+
       </div>
 
       {loading && <div>加载中...</div>}
@@ -93,6 +107,60 @@ export default function UsersPage() {
         </select>
         <span>条，共 {total} 条</span>
       </div>
+
+      {showForm && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              try {
+                await createUser(form)
+                alert("创建成功")
+                setShowForm(false)
+                setPage(0) // 创建后回到第一页
+                setRefresh(r => r + 1)      // 强制刷新
+              } catch (err: any) {
+                alert(err.message || "创建失败")
+              }
+            }}
+            style={{ background: "#fff", padding: 16, width: 400, borderRadius: 8 }}
+          >
+            <h3>新增用户</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label>
+                用户名：
+                <input
+                  value={form.username}
+                  onChange={(e) => setForm({ ...form, username: e.target.value })}
+                />
+              </label>
+              <label>
+                邮箱：
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </label>
+              <label>
+                初始密码：
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+              </label>
+            </div>
+            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button type="button" onClick={() => setShowForm(false)}>取消</button>
+              <button type="submit">保存</button>
+            </div>
+          </form>
+        </div>
+      )}
 
     </div>
   )
