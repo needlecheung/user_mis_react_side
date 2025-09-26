@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getUsers, createUser, updateUser, type User } from './api'
+import { getUsers, createUser, updateUser, deleteUser, type User } from './api'
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(false)
@@ -91,6 +91,25 @@ export default function UsersPage() {
                 }}>
                   编辑
                 </button>
+
+                <button
+                  style={{ marginLeft: 8 }}
+                  onClick={async () => {
+                    if (window.confirm(`确定要删除用户 ${u.username} 吗？`)) {
+                      try {
+                        await deleteUser(u.id)
+                        alert("删除成功")
+                        setPage(0)             // 回到第一页
+                        setRefresh(r => r + 1) // 强制刷新
+                      } catch (err: any) {
+                        alert(err.message || "删除失败")
+                      }
+                    }
+                  }}
+                >
+                  删除
+                </button>
+                
               </td>
             </tr>
           ))}

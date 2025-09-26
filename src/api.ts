@@ -52,3 +52,9 @@ export function updateUser(id: number, body: { username: string; email: string }
     body: JSON.stringify(body),
   })
 }
+
+export async function deleteUser(id: number) {
+  const res = await fetch(`${BASE}/users/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  // 不要 res.json()，因为后端没返回内容
+}
