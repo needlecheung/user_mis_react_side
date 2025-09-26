@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getUsers, createUser, type User } from './api'
+import { getUsers, createUser, updateUser, type User } from './api'
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(false)
@@ -24,6 +24,8 @@ export default function UsersPage() {
     email: "",
     password: ""
   })
+
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   useEffect(() => {
     const run = async () => {
@@ -76,11 +78,20 @@ export default function UsersPage() {
           </tr>
         </thead>
         <tbody>
-          {list.map(u => (
+          {list.map((u: User) => (
             <tr key={u.id}>
               <td style={{ border: '1px solid #eee' }}>{u.id}</td>
               <td style={{ border: '1px solid #eee' }}>{u.username}</td>
               <td style={{ border: '1px solid #eee' }}>{u.email}</td>
+              <td style={{ border: '1px solid #eee' }}>
+                <button onClick={() => {
+                  setForm({ username: u.username, email: u.email, password: "" }) // password 不编辑
+                  setEditingId(u.id)   // 👈 标记当前编辑的用户
+                  setShowForm(true)    // 打开弹层
+                }}>
+                  编辑
+                </button>
+              </td>
             </tr>
           ))}
           {list.length === 0 && !loading && !error && (
@@ -117,18 +128,27 @@ export default function UsersPage() {
             onSubmit={async (e) => {
               e.preventDefault()
               try {
-                await createUser(form)
-                alert("创建成功")
+                if (editingId) {
+                  await updateUser(editingId, {
+                    username: form.username,
+                    email: form.email
+                  })
+                  alert("更新成功")
+                } else {
+                  await createUser(form)
+                  alert("创建成功")
+                }
                 setShowForm(false)
-                setPage(0) // 创建后回到第一页
-                setRefresh(r => r + 1)      // 强制刷新
+                setEditingId(null)
+                setPage(0)
+                setRefresh(r => r + 1)
               } catch (err: any) {
-                alert(err.message || "创建失败")
+                alert(err.message || "操作失败")
               }
             }}
             style={{ background: "#fff", padding: 16, width: 400, borderRadius: 8 }}
           >
-            <h3>新增用户</h3>
+            <h3>{editingId ? "编辑用户" : "新增用户"}</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <label>
                 用户名：
@@ -145,14 +165,16 @@ export default function UsersPage() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                 />
               </label>
-              <label>
-                初始密码：
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                />
-              </label>
+              {!editingId && (
+                <label>
+                  初始密码：
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  />
+                </label>
+              )}
             </div>
             <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button type="button" onClick={() => setShowForm(false)}>取消</button>

@@ -45,3 +45,10 @@ export function createUser(body: { username: string; email: string; password: st
     body: JSON.stringify(body),
   })
 }
+
+export function updateUser(id: number, body: { username: string; email: string }) {
+  return request<User>(`${BASE}/users/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  })
+}
