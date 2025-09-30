@@ -1,4 +1,5 @@
-export type User = {
+// 用户对象
+export interface User {
   id: number
   username: string
   email: string
@@ -6,7 +7,8 @@ export type User = {
   updatedAt?: string
 }
 
-export type PageResp<T> = {
+// 通用分页响应
+export interface PageResp<T> {
   content: T[]
   totalElements: number
   totalPages: number
@@ -16,6 +18,7 @@ export type PageResp<T> = {
 
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 
+// 通用请求函数（带泛型）
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
@@ -29,16 +32,17 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     } catch {}
     throw new Error(msg)
   }
-  return res.json()
+  return res.json() as Promise<T>   // 明确返回泛型
 }
 
-// 支持分页和搜索
+// 获取用户（分页 + 搜索）
 export function getUsers(page = 0, size = 10, q?: string) {
   const p = new URLSearchParams({ page: String(page), size: String(size) })
   if (q) p.set("q", q)
   return request<PageResp<User>>(`${BASE}/users?${p.toString()}`)
 }
 
+// 新增用户
 export function createUser(body: { username: string; email: string; password: string }) {
   return request<User>(`${BASE}/users`, {
     method: 'POST',
@@ -46,6 +50,7 @@ export function createUser(body: { username: string; email: string; password: st
   })
 }
 
+// 更新用户
 export function updateUser(id: number, body: { username: string; email: string }) {
   return request<User>(`${BASE}/users/${id}`, {
     method: 'PUT',
@@ -53,8 +58,9 @@ export function updateUser(id: number, body: { username: string; email: string }
   })
 }
 
-export async function deleteUser(id: number) {
+// 删除用户（后端返回 204 No Content）
+export async function deleteUser(id: number): Promise<void> {
   const res = await fetch(`${BASE}/users/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  // 不要 res.json()，因为后端没返回内容
+  // 不要返回res.json()，因为后端没返回内容
 }
