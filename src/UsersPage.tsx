@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getUsers, createUser, updateUser, deleteUser, type User } from './api'
+import UserTable from "./UserTable"
+import UserForm from "./UserForm"
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(false)
@@ -69,55 +71,20 @@ export default function UsersPage() {
       {loading && <div>加载中...</div>}
       {error && <div style={{ color: 'red' }}>错误：{error}</div>}
 
-      <table width="100%" cellPadding={8} style={{ borderCollapse: 'collapse', background: '#fff' }}>
-        <thead>
-          <tr style={{ background: '#f5f5f5' }}>
-            <th style={{ border: '1px solid #eee' }}>ID</th>
-            <th style={{ border: '1px solid #eee' }}>用户名</th>
-            <th style={{ border: '1px solid #eee' }}>邮箱</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((u: User) => (
-            <tr key={u.id}>
-              <td style={{ border: '1px solid #eee' }}>{u.id}</td>
-              <td style={{ border: '1px solid #eee' }}>{u.username}</td>
-              <td style={{ border: '1px solid #eee' }}>{u.email}</td>
-              <td style={{ border: '1px solid #eee' }}>
-                <button onClick={() => {
-                  setForm({ username: u.username, email: u.email, password: "" }) // password 不编辑
-                  setEditingId(u.id)   // 👈 标记当前编辑的用户
-                  setShowForm(true)    // 打开弹层
-                }}>
-                  编辑
-                </button>
-
-                <button
-                  style={{ marginLeft: 8 }}
-                  onClick={async () => {
-                    if (window.confirm(`确定要删除用户 ${u.username} 吗？`)) {
-                      try {
-                        await deleteUser(u.id)
-                        alert("删除成功")
-                        setPage(0)             // 回到第一页
-                        setRefresh(r => r + 1) // 强制刷新
-                      } catch (err: any) {
-                        alert(err.message || "删除失败")
-                      }
-                    }
-                  }}
-                >
-                  删除
-                </button>
-                
-              </td>
-            </tr>
-          ))}
-          {list.length === 0 && !loading && !error && (
-            <tr><td colSpan={3} style={{ textAlign: 'center', padding: 16 }}>暂无数据</td></tr>
-          )}
-        </tbody>
-      </table>
+      <UserTable
+        list={list}
+        onEdit={(u) => {
+          setEditingId(u.id)
+          setForm({ username: u.username, email: u.email, password: "" })
+          setShowForm(true)
+        }}
+        onDelete={async (u) => {
+          if (window.confirm(`确定要删除用户 ${u.username} 吗？`)) {
+            await deleteUser(u.id)
+            setRefresh(r => r + 1)
+          }
+        }}
+      />
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 12 }}>
         <button disabled={page <= 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
@@ -139,68 +106,21 @@ export default function UsersPage() {
       </div>
 
       {showForm && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
-          display: "flex", alignItems: "center", justifyContent: "center"
-        }}>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault()
-              try {
-                if (editingId) {
-                  await updateUser(editingId, {
-                    username: form.username,
-                    email: form.email
-                  })
-                  alert("更新成功")
-                } else {
-                  await createUser(form)
-                  alert("创建成功")
-                }
-                setShowForm(false)
-                setEditingId(null)
-                setPage(0)
-                setRefresh(r => r + 1)
-              } catch (err: any) {
-                alert(err.message || "操作失败")
-              }
-            }}
-            style={{ background: "#fff", padding: 16, width: 400, borderRadius: 8 }}
-          >
-            <h3>{editingId ? "编辑用户" : "新增用户"}</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <label>
-                用户名：
-                <input
-                  value={form.username}
-                  onChange={(e) => setForm({ ...form, username: e.target.value })}
-                />
-              </label>
-              <label>
-                邮箱：
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
-              </label>
-              {!editingId && (
-                <label>
-                  初始密码：
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  />
-                </label>
-              )}
-            </div>
-            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" onClick={() => setShowForm(false)}>取消</button>
-              <button type="submit">保存</button>
-            </div>
-          </form>
-        </div>
+        <UserForm
+          initial={form}
+          editingId={editingId}
+          onCancel={() => setShowForm(false)}
+          onSubmit={async (data) => {
+            if (editingId) {
+              await updateUser(editingId, { username: data.username, email: data.email })
+            } else {
+              await createUser(data)
+            }
+            setShowForm(false)
+            setEditingId(null)
+            setRefresh(r => r + 1)
+          }}
+        />
       )}
 
     </div>
